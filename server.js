@@ -5,7 +5,9 @@ const cors = require("cors");
 const Stripe = require("stripe");
 
 const app = express();
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const PORT = process.env.PORT || 4242;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecretKey ? Stripe(stripeSecretKey) : null;
 
 app.use(cors());
 app.use(express.json());
@@ -15,7 +17,23 @@ app.get("/", (req, res) => {
 });
 
 app.post("/create-checkout-session", async (req, res) => {
+  if (!stripe) {
+    return res.status(500).json({
+      error:
+        "Configuration serveur manquante: STRIPE_SECRET_KEY n'est pas definie.",
+    });
+  }
+
   try {
+    const { amount, description } = req.body || {};
+    const unitAmount = Math.round(Number(amount) * 100);
+
+    if (!Number.isFinite(unitAmount) || unitAmount < 100) {
+      return res.status(400).json({
+        error: "Montant invalide. Le montant doit etre un nombre >= 1 EUR.",
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [
@@ -23,9 +41,9 @@ app.post("/create-checkout-session", async (req, res) => {
           price_data: {
             currency: "eur",
             product_data: {
-              name: "Réservation KD Conciergerie",
+              name: description || "Réservation KD Conciergerie",
             },
-            unit_amount: 25500,
+            unit_amount: unitAmount,
           },
           quantity: 1,
         },
@@ -41,8 +59,8 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-app.listen(4242, () => {
-  console.log("Serveur lancé sur http://localhost:4242");
+app.listen(PORT, () => {
+  console.log(`Serveur lance sur le port ${PORT}`);
 });
 
 
