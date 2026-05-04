@@ -5,15 +5,20 @@ const cors = require("cors");
 const Stripe = require("stripe");
 
 const app = express();
-const PORT = process.env.PORT || 4242;
+const PORT = Number.parseInt(process.env.PORT || "4242", 10);
+const HOST = process.env.HOST || "0.0.0.0";
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-const stripe = stripeSecretKey ? Stripe(stripeSecretKey) : null;
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Backend KD Stripe OK");
+app.get("/", (_req, res) => {
+  res.status(200).send("Backend KD Stripe OK");
+});
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({ ok: true, stripe: Boolean(stripe) });
 });
 
 app.post("/create-checkout-session", async (req, res) => {
@@ -59,8 +64,6 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Serveur lance sur le port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Serveur lance sur ${HOST}:${PORT}`);
 });
-
-
