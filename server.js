@@ -5,16 +5,33 @@ const cors = require("cors");
 const Stripe = require("stripe");
 
 const app = express();
-const PORT = Number.parseInt(process.env.PORT || "4242", 10);
+const PORT = Number.parseInt(String(process.env.PORT || "4242"), 10);
 const HOST = process.env.HOST || "0.0.0.0";
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
-app.use(cors());
-app.use(express.json());
+let stripe = null;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+if (typeof stripeSecretKey === "string" && stripeSecretKey.trim().startsWith("sk_")) {
+  try {
+    stripe = new Stripe(stripeSecretKey.trim());
+  } catch (err) {
+    console.error("Stripe init:", err?.message || err);
+  }
+} else {
+  console.warn("STRIPE_SECRET_KEY absente ou invalide — la route paiement renverra une erreur tant que la clé n'est pas définie dans Railway.");
+}
+
+app.use(
+  cors({
+    origin: true,
+    methods: ["GET", "HEAD", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Accept"],
+    optionsSuccessStatus: 204,
+  })
+);
+app.use(express.json({ limit: "100kb" }));
 
 app.get("/", (_req, res) => {
-  res.status(200).send("Backend KD Stripe OK");
+  res.status(200).type("text/plain").send("Backend KD Stripe OK");
 });
 
 app.get("/health", (_req, res) => {
@@ -64,6 +81,19 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-app.listen(PORT, HOST, () => {
-  console.log(`Serveur lance sur ${HOST}:${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`Listening on ${HOST}:${PORT}`);
+});
+
+server.on("error", (err) => {
+  console.error("Listen error:", err?.message || err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("unhandledRejection:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("uncaughtException:", err?.message || err);
 });
