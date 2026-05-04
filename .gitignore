@@ -1,0 +1,12 @@
+# Dependencies (Railway runs npm install during build)
+node_modules/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Logs / OS
+npm-debug.log*
+.DS_Store
+Thumbs.db
