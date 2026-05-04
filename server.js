@@ -5,7 +5,14 @@ const cors = require("cors");
 const Stripe = require("stripe");
 
 const app = express();
-const PORT = Number.parseInt(String(process.env.PORT || "4242"), 10);
+
+const rawPort = process.env.PORT;
+const PORT = Number.parseInt(String(rawPort != null && String(rawPort).trim() !== "" ? rawPort : "4242"), 10);
+if (!Number.isFinite(PORT) || PORT < 1 || PORT > 65535) {
+  console.error("PORT invalide:", rawPort);
+  process.exit(1);
+}
+
 const HOST = process.env.HOST || "0.0.0.0";
 
 let stripe = null;
