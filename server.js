@@ -29,8 +29,8 @@ if (typeof stripeSecretKey === "string" && stripeSecretKey.trim().startsWith("sk
 
 app.use(
   cors({
-    origin: true,
-    methods: ["GET", "HEAD", "POST", "OPTIONS"],
+    origin: "https://kader1209.github.io",
+    methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Accept"],
     optionsSuccessStatus: 204,
   })
