@@ -14,6 +14,16 @@ if (!Number.isFinite(PORT) || PORT < 1 || PORT > 65535) {
 }
 
 const HOST = process.env.HOST || "0.0.0.0";
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://kader1209.github.io";
+
+const allowedOrigins = new Set([
+  FRONTEND_URL,
+  "https://kader1209.github.io",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+]);
 
 let stripe = null;
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -29,12 +39,18 @@ if (typeof stripeSecretKey === "string" && stripeSecretKey.trim().startsWith("sk
 
 app.use(
   cors({
-    origin: "https://kader1209.github.io",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Accept"],
+    origin(origin, callback) {
+      // Autorise les appels serveur-à-serveur/outils sans header Origin.
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.has(origin)) return callback(null, true);
+      return callback(new Error(`Origin non autorisee: ${origin}`), false);
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Accept", "Authorization"],
     optionsSuccessStatus: 204,
   })
 );
+app.options("*", cors());
 app.use(express.json({ limit: "100kb" }));
 
 app.get("/", (_req, res) => {
@@ -83,8 +99,10 @@ app.post("/create-checkout-session", async (req, res) => {
 
     res.json({ url: session.url });
   } catch (error) {
-    console.error("Erreur Stripe :", error.message);
-    res.status(500).json({ error: error.message });
+    const message = error?.message || "Erreur Stripe inconnue";
+    const code = error?.code || null;
+    console.error("Erreur Stripe :", message, code ? `(code: ${code})` : "");
+    res.status(500).json({ error: message, code });
   }
 });
 
